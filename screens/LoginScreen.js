@@ -13,6 +13,7 @@ import {
 import Toast from "react-native-toast-message";
 import { Picker } from "@react-native-picker/picker"; // Import Picker
 import { HttpClient } from "../server/http";
+import { API_URL, APP_ENV } from '@env';
 
 export default function LoginScreen({ navigation }) {
   const [mobileNumber, setMobileNumber] = useState("");
@@ -57,16 +58,7 @@ export default function LoginScreen({ navigation }) {
         });
       }
 
-      if (mobileNumber.length !== 10) {
-        setIsLoading(false);
-        return Toast.show({
-          type: "error",
-          text1: "Error Message!",
-          text2: "Mobile Number must be 10 digits.",
-        });
-      }
-
-      const { user, message } = await HttpClient.post("/auth/login", {
+      const { user, message } = await HttpClient.post(`${API_URL}/api/auth/admin-login`, {
         email: mobileNumber,
         password,
         role,
@@ -96,7 +88,7 @@ export default function LoginScreen({ navigation }) {
       Toast.show({
         type: "error",
         text1: "Error Message!",
-        text2: error?.response?.data?.message || "Something went wrong!",
+        text2: error?.data?.message || "Something went wrong!",
       });
     } finally {
       setIsLoading(false);
@@ -112,17 +104,17 @@ export default function LoginScreen({ navigation }) {
         <Image source={require("../assets/usk-img.png")} style={styles.logo} />
         <View style={styles.header}>
           <Text style={styles.title}>Login</Text>
+          <Text
+            style={{
+              fontWeight: "400",
+              fontSize: 24,
+              textAlign: "center",
+            }}
+          >
+            as
+          </Text>
           <View style={{ flexDirection: "row" }}>
-            <Text
-              style={{
-                fontWeight: "400",
-                fontSize: 24,
-                textAlign: "center",
-                marginLeft: 40,
-              }}
-            >
-              as
-            </Text>
+
             <Picker
               selectedValue={role}
               onValueChange={(itemValue) => setRole(itemValue)}
@@ -133,8 +125,8 @@ export default function LoginScreen({ navigation }) {
               <Picker.Item label="State admin" value="state_admin" />
               <Picker.Item label="District admin" value="district_admin" />
               <Picker.Item
-                label="District super admin"
-                value="district_super_admin"
+                label="District shop admin"
+                value="district_shop_admin"
               />
               <Picker.Item
                 label="Distributor admin"
@@ -151,17 +143,17 @@ export default function LoginScreen({ navigation }) {
           <TextInput
             style={styles.input}
             value={mobileNumber}
-            maxLength={10}
-            onChangeText={(e) => setMobileNumber(e)}
+            onChangeText={(text) => {
+              setMobileNumber(text);
+            }}
             placeholder="Type here"
-            keyboardType="numeric"
+            keyboardType={"default"}
           />
         </View>
 
         <View>
           <Text style={styles.input_1}>
             Password
-            <Text style={styles.link_pass}> Forgot Password?</Text>
           </Text>
           <TextInput
             style={styles.input}
@@ -256,7 +248,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   dropdown: {
-    width: 150,
+    width: 180,
     marginLeft: 10,
   },
   button: {

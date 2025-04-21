@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "usk",
-    "slug": "usk",
+    "slug": "uskmonitor",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -12,7 +12,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.dveersingh000.usk",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -26,8 +30,9 @@
     },
     "extra": {
       "eas": {
-        "projectId": "08254bc5-634b-4b24-bd7a-0bfaf8a0cb4e"
+        "projectId": "bfad5262-fef0-4100-8c6a-31ff2976b6c9"
       }
-    }
+    },
+    "owner": "sonukumar0611"
   }
 }

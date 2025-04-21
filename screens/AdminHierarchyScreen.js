@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   View,
@@ -13,43 +13,44 @@ import {
 import Toast from "react-native-toast-message";
 import { HttpClient } from "../server/http";
 import { Avatar } from "react-native-elements";
+import { API_URL, APP_ENV } from '@env';
+import { Picker } from "react-native-web";
+import { UserContext } from "../contexts/AuthContext";
+
+
 
 export default function AdminHierarchyScreen() {
   const [users, setUsers] = useState([]);
   const [adminRoles, setAdminRoles] = useState([]);
   const [states, setStates] = useState([]);
   const [districts, setDistricts] = useState([]);
-  const [currentUser, setCurrentUser] = useState(null);
+  const [role, setRole] = useState("CMA"); // State for the dropdown
+  const { currentUser, loading } = useContext(UserContext);
+  const roleHierarchy = {
+    CMA: ["country_admin"],
+    country_admin: ["state_admin"],
+    state_admin: ["district_admin"],
+    district_admin: ["district_shop_admin", "distributor_admin"],
+    district_shop_admin: ['block_admin'],
+    distributor_admin: ['block_admin'],
+    block_admin: ['gpn_admin'],
+    gpn_admin: ['vendor'],
+    vendor: [],
+  };
+
+
   const [modalVisible, setModalVisible] = useState(false);
   const [newUserEmail, setNewUserEmail] = useState(""); // New user email
   const [newUserPhone, setNewUserPhone] = useState(""); // New user phone
 
   // User details (mock data for demonstration)
-  const [loggedInUser, setLoggedInUser] = useState({
-    name: "Akhan Das",
-    email: "akhan.das@example.com",
-    role: "Country Admin",
-  });
+
 
   // Generate a random 6-digit referral code
   const generateReferralCode = () => {
     return Math.floor(10000000 + Math.random() * 900000).toString();
   };
 
-  const retrieveUserData = async () => {
-    try {
-      const saveduserDataString = await AsyncStorage.getItem("user");
-      if (saveduserDataString) {
-        const saveduserData = JSON.parse(saveduserDataString);
-        setCurrentUser({ ...saveduserData, id: saveduserData?._id });
-      }
-    } catch (error) {
-      console.error("Error retrieving user data:", error);
-    }
-  };
-  useEffect(() => {
-    retrieveUserData();
-  }, []);
 
   useEffect(() => {
     if (currentUser?.id) {
@@ -59,43 +60,51 @@ export default function AdminHierarchyScreen() {
 
   const [referralCode, setReferralCode] = useState(generateReferralCode());
 
+  const roles = [
+    { label: "Country admin", value: "country_admin" },
+    { label: "State admin", value: "state_admin" },
+    { label: "District admin", value: "district_admin" },
+    { label: "District shop admin", value: "district_shop_admin" },
+    { label: "Distributor admin", value: "distributor_admin" },
+    { label: "Block admin", value: "block_admin" },
+    { label: "GPN admin", value: "gpn_admin" },
+    { label: "Vendor", value: "vendor" },
+  ];
+
+  const statesData = [
+    { label: "Rajasthan", value: "rajasthan" },
+    { label: "Maharashtra", value: "maharashtra" },
+    { label: "Uttar Pradesh", value: "uttar_pradesh" },
+    { label: "Karnataka", value: "karnataka" },
+  ];
+
+  const districtsData = [
+    { label: "Jaipur", value: "jaipur" },
+    { label: "Jodhpur", value: "jodhpur" },
+    { label: "Udaipur", value: "udaipur" },
+    { label: "Kota", value: "kota" },
+  ];
+
+
   useEffect(() => {
-    // Mock data for dropdowns
-    const fetchData = async () => {
-      const roles = [
-        { label: "Country admin", value: "country_admin" },
-        { label: "State admin", value: "state_admin" },
-        { label: "District admin", value: "district_admin" },
-        { label: "District super admin", value: "district_super_admin" },
-        { label: "Distributor admin", value: "distributor_admin" },
-        { label: "Block admin", value: "block_admin" },
-        { label: "GPN admin", value: "gpn_admin" },
-      ];
+    if (currentUser?.role) {
+     
+      const userRole = currentUser?.role;
 
-      const statesData = [
-        { label: "Rajasthan", value: "rajasthan" },
-        { label: "Maharashtra", value: "maharashtra" },
-        { label: "Uttar Pradesh", value: "uttar_pradesh" },
-        { label: "Karnataka", value: "karnataka" },
-      ];
+      const allowedRoles = roleHierarchy[userRole] || [];
 
-      const districtsData = [
-        { label: "Jaipur", value: "jaipur" },
-        { label: "Jodhpur", value: "jodhpur" },
-        { label: "Udaipur", value: "udaipur" },
-        { label: "Kota", value: "kota" },
-      ];
+      const filteredRoles = roles.filter((r) => allowedRoles.includes(r.value));
 
-      // Simulate data fetching delay
-      setTimeout(() => {
-        setAdminRoles(roles);
-        setStates(statesData);
-        setDistricts(districtsData);
-      }, 500); // Mock delay of 0.5 second
-    };
+      setAdminRoles(filteredRoles);
+      setStates(statesData);
+      setDistricts(districtsData);
+      if (filteredRoles.length > 0) {
+        setRole(filteredRoles[0].value);
+      }
+    }
+  }, [currentUser?.role]);
 
-    fetchData();
-  }, []);
+  console.log({ adminRoles })
 
   const handleAddTask = async () => {
     if (!newUserEmail || !newUserPhone) {
@@ -103,12 +112,19 @@ export default function AdminHierarchyScreen() {
       return;
     }
 
+    const allowedRoles = roleHierarchy[currentUser?.role] || [];
+    if (!allowedRoles.includes(role)) {
+      alert("You are not authorized to create a user with this role.");
+      return;
+    }
+
     try {
-      const response = await HttpClient.post("/auth/add-user", {
+      const response = await HttpClient.post(`${API_URL}/api/auth/add-user`, {
         email: newUserEmail,
         phone: newUserPhone,
         referralCode,
-        currentUserId: "68035a74506d1fcc999a9ab7",
+        currentUserId: currentUser?.id,
+        role
       });
       Toast.show({
         type: "info",
@@ -118,6 +134,7 @@ export default function AdminHierarchyScreen() {
       setNewUserEmail("");
       setNewUserPhone("");
       setReferralCode(generateReferralCode());
+      getUsers();
     } catch (error) {
       console.log(error);
       alert("Failed to add user. Please try again.");
@@ -127,7 +144,7 @@ export default function AdminHierarchyScreen() {
   const getUsers = async () => {
     try {
       const response = await HttpClient.get(
-        `/auth/get-users/${currentUser.id}`
+        `${API_URL}/api/auth/get-users/${currentUser.id}`
       );
       setUsers(response.users);
     } catch (error) {
@@ -188,11 +205,11 @@ export default function AdminHierarchyScreen() {
       </View>
 
       {/* View All Button */}
-      <TouchableOpacity style={styles.viewAllButton}>
+      {/* <TouchableOpacity style={styles.viewAllButton}>
         <View style={styles.viewAllText}>
           <Text>View all state admins</Text>
         </View>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
 
       {/* State Information */}
       <Text style={styles.stateText}>
@@ -282,6 +299,19 @@ export default function AdminHierarchyScreen() {
                 keyboardType="numeric"
               />
 
+              <Text style={styles.label}>Role:</Text>
+              <View style={{ flexDirection: "row" }}>
+                <Picker
+                  selectedValue={role}
+                  onValueChange={(itemValue) => setRole(itemValue)}
+                  style={styles.dropdown}
+                >
+                  {adminRoles.map((item, index) => (
+                    <Picker.Item key={index} label={item.label} value={item.value} />
+                  ))}
+                </Picker>
+              </View>
+
               <Text style={styles.refer}>Referral Code:</Text>
               <Text style={styles.referralCode}>{referralCode}</Text>
 
@@ -357,6 +387,7 @@ const styles = StyleSheet.create({
   },
   adminDetails: {
     flex: 1,
+    marginLeft: 10,
   },
   adminLeft: {
     flexDirection: "row",
@@ -472,6 +503,12 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     padding: 10,
     borderRadius: 5,
+  },
+  dropdown: {
+    width: "100%",
+    marginBottom: 20,
+    paddingTop:10,
+    paddingBottom:10,
   },
   submitButton: {
     backgroundColor: "#4CAF50",
