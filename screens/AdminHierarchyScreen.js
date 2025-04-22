@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useMemo } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   View,
@@ -13,9 +13,11 @@ import {
 import Toast from "react-native-toast-message";
 import { HttpClient } from "../server/http";
 import { Avatar } from "react-native-elements";
-import { API_URL, APP_ENV } from '@env';
+
 import { Picker } from "react-native-web";
 import { UserContext } from "../contexts/AuthContext";
+import { BACKEND_API_URL } from "../helper/constant";
+import ShowComponent from "../helper/ShowComponent";
 
 
 
@@ -25,7 +27,18 @@ export default function AdminHierarchyScreen() {
   const [states, setStates] = useState([]);
   const [districts, setDistricts] = useState([]);
   const [role, setRole] = useState("CMA"); // State for the dropdown
+  const [categoryValue, setCategoryValue] = useState("driver"); // State for the dropdown
+  const [stateValue, setStateValue] = useState("rajasthan"); // State for the dropdown
+  const [districtValue, setDistrictValue] = useState("jaipur"); // State for the dropdown
+  const [countryValue, setCountryValue] = useState("india"); // State for the dropdown
+  const [blockValue, setBlockValue] = useState("ambar"); // State for the dropdown
+  const [gpnValue, setGpnValue] = useState("achrol"); // State for the dropdown
+  const [villageName, setVillageName] = useState("achrol"); // State for the dropdown
   const { currentUser, loading } = useContext(UserContext);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [newUserEmail, setNewUserEmail] = useState(""); // New user email
+  const [newUserPhone, setNewUserPhone] = useState(""); // New user phone
+
   const roleHierarchy = {
     CMA: ["country_admin"],
     country_admin: ["state_admin"],
@@ -38,37 +51,22 @@ export default function AdminHierarchyScreen() {
     vendor: [],
   };
 
-
-  const [modalVisible, setModalVisible] = useState(false);
-  const [newUserEmail, setNewUserEmail] = useState(""); // New user email
-  const [newUserPhone, setNewUserPhone] = useState(""); // New user phone
-
-  // User details (mock data for demonstration)
-
-
   // Generate a random 6-digit referral code
   const generateReferralCode = () => {
     return Math.floor(10000000 + Math.random() * 900000).toString();
   };
 
+  const category = [
+    {
+      label: "Driver", value: "driver"
+    },
+    {
+      label: "Electrician", value: "electrician"
+    },
+  ]
 
-  useEffect(() => {
-    if (currentUser?.id) {
-      getUsers();
-    }
-  }, [currentUser]);
-
-  const [referralCode, setReferralCode] = useState(generateReferralCode());
-
-  const roles = [
-    { label: "Country admin", value: "country_admin" },
-    { label: "State admin", value: "state_admin" },
-    { label: "District admin", value: "district_admin" },
-    { label: "District shop admin", value: "district_shop_admin" },
-    { label: "Distributor admin", value: "distributor_admin" },
-    { label: "Block admin", value: "block_admin" },
-    { label: "GPN admin", value: "gpn_admin" },
-    { label: "Vendor", value: "vendor" },
+  const countryData = [
+    { label: "India", value: "india" },
   ];
 
   const statesData = [
@@ -85,10 +83,42 @@ export default function AdminHierarchyScreen() {
     { label: "Kota", value: "kota" },
   ];
 
+  const blocksData = [
+    { label: "Ambar", value: "amber" },
+    { label: "Andhi", value: "andhi" },
+    { label: "Bassi", value: "bassi" },
+    { label: "Chaksu", value: "chaksu" },
+  ];
+
+  const GPNData = [
+    { label: "Achrol", value: "achrol_764576" },
+    { label: "Akhepura", value: "akhepura" },
+    { label: "Akedadoongar", value: "akedadoongar" },
+    { label: "Bagwada", value: "bagwada" },
+  ]
+
+  const villageData = [
+    { label: "Achrol", value: "achrol" },
+    { label: "Anoppura", value: "anoppura" },
+  ]
+
+  const [referralCode, setReferralCode] = useState(generateReferralCode());
+
+  const roles = [
+    { label: "Country admin", value: "country_admin" },
+    { label: "State admin", value: "state_admin" },
+    { label: "District admin", value: "district_admin" },
+    { label: "District shop admin", value: "district_shop_admin" },
+    { label: "Distributor admin", value: "distributor_admin" },
+    { label: "Block admin", value: "block_admin" },
+    { label: "GPN admin", value: "gpn_admin" },
+    { label: "Vendor", value: "vendor" },
+  ];
+
 
   useEffect(() => {
     if (currentUser?.role) {
-     
+      console.log({ currentUser })
       const userRole = currentUser?.role;
 
       const allowedRoles = roleHierarchy[userRole] || [];
@@ -104,7 +134,7 @@ export default function AdminHierarchyScreen() {
     }
   }, [currentUser?.role]);
 
-  console.log({ adminRoles })
+  console.log({ role })
 
   const handleAddTask = async () => {
     if (!newUserEmail || !newUserPhone) {
@@ -119,12 +149,13 @@ export default function AdminHierarchyScreen() {
     }
 
     try {
-      const response = await HttpClient.post(`${API_URL}/api/auth/add-user`, {
+      const response = await HttpClient.post(`${BACKEND_API_URL}/api/auth/add-user`, {
         email: newUserEmail,
         phone: newUserPhone,
         referralCode,
-        currentUserId: currentUser?.id,
-        role
+        currentUserId: currentUser?._id,
+        userType: role,
+        category: categoryValue
       });
       Toast.show({
         type: "info",
@@ -144,7 +175,7 @@ export default function AdminHierarchyScreen() {
   const getUsers = async () => {
     try {
       const response = await HttpClient.get(
-        `${API_URL}/api/auth/get-users/${currentUser.id}`
+        `${BACKEND_API_URL}/api/auth/get-users/${currentUser._id}`
       );
       setUsers(response.users);
     } catch (error) {
@@ -152,6 +183,12 @@ export default function AdminHierarchyScreen() {
       alert("Failed to fetch users. Please try again.");
     }
   };
+
+  useEffect(() => {
+    if (currentUser && currentUser?._id) {
+      getUsers();
+    }
+  }, [currentUser?._id]);
 
   return (
     <ScrollView
@@ -311,6 +348,111 @@ export default function AdminHierarchyScreen() {
                   ))}
                 </Picker>
               </View>
+
+              <ShowComponent condition={currentUser?.role == "CMA"}>
+                <Text style={styles.label}>Country:</Text>
+                <View style={{ flexDirection: "row" }}>
+                  <Picker
+                    selectedValue={countryValue}
+                    onValueChange={(itemValue) => setCountryValue(itemValue)}
+                    style={styles.dropdown}
+                  >
+                    {countryData.map((item, index) => (
+                      <Picker.Item key={index} label={item.label} value={item.value} />
+                    ))}
+                  </Picker>
+                </View>
+              </ShowComponent>
+
+              <ShowComponent condition={currentUser?.role == "CMA"}>
+                <Text style={styles.label}>Category:</Text>
+                <View style={{ flexDirection: "row" }}>
+                  <Picker
+                    selectedValue={categoryValue}
+                    onValueChange={(itemValue) => setCategoryValue(itemValue)}
+                    style={styles.dropdown}
+                  >
+                    {category.map((item, index) => (
+                      <Picker.Item key={index} label={item.label} value={item.value} />
+                    ))}
+                  </Picker>
+                </View>
+              </ShowComponent>
+
+              <ShowComponent condition={currentUser?.role == "country_admin"}>
+                <Text style={styles.label}>State:</Text>
+                <View style={{ flexDirection: "row" }}>
+                  <Picker
+                    selectedValue={stateValue}
+                    onValueChange={(itemValue) => setStateValue(itemValue)}
+                    style={styles.dropdown}
+                  >
+                    {statesData.map((item, index) => (
+                      <Picker.Item key={index} label={item.label} value={item.value} />
+                    ))}
+                  </Picker>
+                </View>
+              </ShowComponent>
+
+              <ShowComponent condition={currentUser?.role == "state_admin"}>
+                <Text style={styles.label}>District:</Text>
+                <View style={{ flexDirection: "row" }}>
+                  <Picker
+                    selectedValue={districtValue}
+                    onValueChange={(itemValue) => setDistrictValue(itemValue)}
+                    style={styles.dropdown}
+                  >
+                    {districtsData.map((item, index) => (
+                      <Picker.Item key={index} label={item.label} value={item.value} />
+                    ))}
+                  </Picker>
+                </View>
+              </ShowComponent>
+
+              <ShowComponent condition={currentUser?.role == "district_admin"}>
+                <Text style={styles.label}>Block:</Text>
+                <View style={{ flexDirection: "row" }}>
+                  <Picker
+                    selectedValue={blockValue}
+                    onValueChange={(itemValue) => setBlockValue(itemValue)}
+                    style={styles.dropdown}
+                  >
+                    {blocksData.map((item, index) => (
+                      <Picker.Item key={index} label={item.label} value={item.value} />
+                    ))}
+                  </Picker>
+                </View>
+              </ShowComponent>
+
+              <ShowComponent condition={currentUser?.role == "block_admin"}>
+                <Text style={styles.label}>Gram Panchayat:</Text>
+                <View style={{ flexDirection: "row" }}>
+                  <Picker
+                    selectedValue={gpnValue}
+                    onValueChange={(itemValue) => setGpnValue(itemValue)}
+                    style={styles.dropdown}
+                  >
+                    {GPNData.map((item, index) => (
+                      <Picker.Item key={index} label={item.label} value={item.value} />
+                    ))}
+                  </Picker>
+                </View>
+              </ShowComponent>
+
+              <ShowComponent condition={currentUser?.role == "gpn_admin"}>
+                <Text style={styles.label}>Village Name:</Text>
+                <View style={{ flexDirection: "row" }}>
+                  <Picker
+                    selectedValue={villageName}
+                    onValueChange={(itemValue) => setVillageName(itemValue)}
+                    style={styles.dropdown}
+                  >
+                    {villageData.map((item, index) => (
+                      <Picker.Item key={index} label={item.label} value={item.value} />
+                    ))}
+                  </Picker>
+                </View>
+              </ShowComponent>
 
               <Text style={styles.refer}>Referral Code:</Text>
               <Text style={styles.referralCode}>{referralCode}</Text>
@@ -507,8 +649,8 @@ const styles = StyleSheet.create({
   dropdown: {
     width: "100%",
     marginBottom: 20,
-    paddingTop:10,
-    paddingBottom:10,
+    paddingTop: 10,
+    paddingBottom: 10,
   },
   submitButton: {
     backgroundColor: "#4CAF50",

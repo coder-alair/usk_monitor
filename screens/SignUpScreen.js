@@ -13,7 +13,7 @@ import { Picker } from "@react-native-picker/picker";
 import Toast from "react-native-toast-message";
 import { HttpClient } from "../server/http";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { API_URL, APP_ENV } from '@env';
+import { BACKEND_API_URL } from "../helper/constant";
 
 
 export default function SignUpScreen({ navigation }) {
@@ -46,7 +46,7 @@ export default function SignUpScreen({ navigation }) {
         });
       }
 
-      const { message, user } = await HttpClient.post(`${API_URL}/api/auth/admin-signup`, {
+      const { message, user } = await HttpClient.post(`${BACKEND_API_URL}/api/auth/admin-signup`, {
         firstName, // Include first name
         lastName, // Include last name
         email: mobileOrEmail,

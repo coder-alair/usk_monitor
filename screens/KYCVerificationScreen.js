@@ -12,7 +12,7 @@ import {
 import axios from "axios";
 import Toast from "react-native-toast-message";
 import { launchImageLibrary } from "react-native-image-picker"; // Import image picker
-import { API_URL, APP_ENV } from '@env';
+import { BACKEND_API_URL } from "../helper/constant";
 
 export default function KYCVerificationScreen({ navigation }) {
   const [aadharNumber, setAadharNumber] = useState("");
@@ -76,7 +76,7 @@ export default function KYCVerificationScreen({ navigation }) {
     setTimeout(async () => {
       try {
         const response = await axios.post(
-          `${API_URL}/api/auth/kyc`,
+          `${BACKEND_API_URL}/api/auth/kyc`,
           {
             aadhar_card_number: aadharNumber,
             Pan_number: panNumber,

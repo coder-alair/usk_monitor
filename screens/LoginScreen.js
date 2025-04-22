@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   View,
   Text,
@@ -13,13 +13,16 @@ import {
 import Toast from "react-native-toast-message";
 import { Picker } from "@react-native-picker/picker"; // Import Picker
 import { HttpClient } from "../server/http";
-import { API_URL, APP_ENV } from '@env';
+import { BACKEND_API_URL } from "../helper/constant";
+import { UserContext } from "../contexts/AuthContext";
 
 export default function LoginScreen({ navigation }) {
   const [mobileNumber, setMobileNumber] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("CMA"); // State for the dropdown
   const [isLoading, setIsLoading] = useState(false);
+  const { setCurrentUser } = useContext(UserContext);
+
 
   const storeUserData = async (userData) => {
     try {
@@ -58,13 +61,15 @@ export default function LoginScreen({ navigation }) {
         });
       }
 
-      const { user, message } = await HttpClient.post(`${API_URL}/api/auth/admin-login`, {
+      const { user, message } = await HttpClient.post(`${BACKEND_API_URL}/api/auth/admin-login`, {
         email: mobileNumber,
         password,
         role,
       });
 
       await storeUserData(user);
+      setCurrentUser(user); // <-- This updates the context immediately
+
       // if (role !== returnedRole) {
       //   setIsLoading(false);
       //   return Toast.show({

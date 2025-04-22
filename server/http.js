@@ -1,9 +1,10 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
+import { BACKEND_API_URL } from "../helper/constant";
 
-const server = "http://localhost:3000";
-// const server = "https://usk-server-yrnc.onrender.com";
+const server = BACKEND_API_URL;
+
 const Axios = axios.create({
   baseURL: `${server}/api`,
   headers: {
