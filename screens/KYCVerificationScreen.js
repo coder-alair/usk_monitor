@@ -13,8 +13,10 @@ import axios from "axios";
 import Toast from "react-native-toast-message";
 import { launchImageLibrary } from "react-native-image-picker"; // Import image picker
 import { BACKEND_API_URL } from "../helper/constant";
+import { useNavigation } from "@react-navigation/native";
 
-export default function KYCVerificationScreen({ navigation }) {
+export default function KYCVerificationScreen() {
+  const navigation = useNavigation();
   const [aadharNumber, setAadharNumber] = useState("");
   const [panNumber, setPanNumber] = useState("");
   const [otp, setOtp] = useState("");
@@ -217,13 +219,13 @@ export default function KYCVerificationScreen({ navigation }) {
               value={otp}
               onChangeText={setOtp}
             />
-            <TouchableOpacity style={styles.vrfyButton} onPress={() => {}}>
+            <TouchableOpacity style={styles.vrfyButton} onPress={() => { }}>
               <Text style={styles.vrfyButtonText}>Verify</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        <TouchableOpacity onPress={() => {}}>
+        <TouchableOpacity onPress={() => { }}>
           <Text style={styles.resendText}>Resend</Text>
         </TouchableOpacity>
 

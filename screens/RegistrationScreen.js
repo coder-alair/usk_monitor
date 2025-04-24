@@ -1,5 +1,4 @@
-import React from "react";
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   ScrollView,
   View,
@@ -8,189 +7,267 @@ import {
   StyleSheet,
   Image,
   TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator
 } from "react-native";
-import CheckBox from "@react-native-community/checkbox";
 import Toast from "react-native-toast-message";
-import axios from "axios";
+import { HttpClient } from "../server/http";
+import { BACKEND_API_URL } from "../helper/constant";
+import RegisterValidations from "../helper/validations/registerValidations";
 
-export default function RegistrationScreen({ navigation }) {
+export default function RegistrationScreen({navigation}) {
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     email: "",
     dob: "",
+    education: "",
+    certificates: "",
+    experience: "",
     permanentAddress: "",
-
     companyName: "",
     companyAddress: "",
     website: "",
     currentSalary: "",
     targetSalary: "",
   });
-  const showToast = () => {
-    Toast.show({
-      type: "success",
-      text1: "Registration Successful",
-      text2: "Welcome",
-    });
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState({});
+
+  const handleInputChange = (name, value) => {
+    setFormData((prevData) => ({ ...prevData, [name]: value }));
   };
-  const [toggleCheckBox, setToggleCheckBox] = useState(false);
+
+  const register = async () => {
+    const { errors, isValid } = RegisterValidations(formData);
+    setErrors(errors);
+
+    if (!isValid) {
+      Toast.show({
+        type: "error",
+        text1: "Validation Error",
+        text2: Object.values(errors)[0], // Show the first error
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await HttpClient.post(
+        `${BACKEND_API_URL}/api/auth/register`,
+        formData
+      );
+
+      console.log("here",response)
+      if (response?.message?.includes("successfully")) {
+        Toast.show({
+          type: "success",
+          text1: "Registration Successful",
+        });
+        console.log({navigation})
+        navigation.navigate("Admin Hierarchy");
+        return;
+      }
+    } catch (error) {
+      console.error(error);
+      Toast.show({
+        type: "error",
+        text1: "Server Error",
+        text2: error?.data?.message || "Something went wrong!",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.scrollContainer}
-      style={{ height: 500 }}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={styles.container}
     >
-      <View style={styles.logoContainer}>
-        <Image
-          source={require("../assets/usk-img.png")}
-          style={styles.logoImage}
-        />
-      </View>
-
-      <Text style={styles.title}>Registration</Text>
-
-      <View style={styles.form}>
-        <View style={styles.row}>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>First name</Text>
-            <TextInput style={styles.input} placeholder="" />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Last name</Text>
-            <TextInput style={styles.input} placeholder="" />
-          </View>
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Email address</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter Your email"
-            keyboardType="email-address"
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        showsVerticalScrollIndicator={true}
+      >
+        <View style={styles.logoContainer}>
+          <Image
+            source={require("../assets/usk-img.png")}
+            style={styles.logoImage}
           />
         </View>
 
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Date of Birth</Text>
-          <TextInput style={styles.input} placeholder="(DD/MM/YYYY)" />
-        </View>
+        <Text style={styles.title}>Registration</Text>
 
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Permanent address</Text>
-          <TextInput style={styles.input} placeholder="Type here" />
-        </View>
+        <View style={styles.form}>
+          <View style={styles.row}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>First name</Text>
+              <TextInput
+                style={styles.input}
+                placeholder=""
+                value={formData.firstName}
+                onChangeText={(text) => handleInputChange("firstName", text)}
+              />
+            </View>
 
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>
-            {/* <CheckBox
-        value={toggleCheckBox}
-        onValueChange={(newValue) => setToggleCheckBox(newValue)}
-      /> */}
-            Permanent address is same as present address
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Last name</Text>
+              <TextInput
+                style={styles.input}
+                placeholder=""
+                value={formData.lastName}
+                onChangeText={(text) => handleInputChange("lastName", text)}
+              />
+            </View>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Email address</Text>
+            <TextInput
+              style={styles.input}
+              keyboardType="email-address"
+              value={formData.email}
+              onChangeText={(text) => handleInputChange("email", text)}
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Date of Birth</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="(DD/MM/YYYY)"
+              value={formData.dob}
+              onChangeText={(text) => handleInputChange("dob", text)}
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Permanent address</Text>
+            <TextInput
+              style={styles.input}
+              value={formData.permanentAddress}
+              onChangeText={(text) => handleInputChange("permanentAddress", text)}
+            />
+          </View>
+
+          <View style={styles.row}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Work experience (in years)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder=""
+                value={formData.experience}
+                onChangeText={(text) => handleInputChange("experience", text)}
+                keyboardType="numeric"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Education</Text>
+              <TextInput
+                style={styles.input}
+                placeholder=""
+                value={formData.education}
+                onChangeText={(text) => handleInputChange("education", text)}
+              />
+            </View>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Educational certificate</Text>
+            <TextInput
+              style={styles.input}
+              value={formData.certificates}
+              onChangeText={(text) => handleInputChange("certificates", text)}
+              placeholder="Upload your educational certificate here"
+            />
+          </View>
+
+          <Text style={styles.subTitle}>
+            <Image source={require("../assets/Line.png")} style={styles.line} />{" "}
+            Company details{" "}
+            <Image source={require("../assets/Line.png")} style={styles.line} />
           </Text>
 
-          <TextInput style={styles.input} placeholder="Permanet address" />
-        </View>
-
-        <View style={styles.row}>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Work experience (in years)</Text>
+            <Text style={styles.label}>Company name</Text>
             <TextInput
               style={styles.input}
-              placeholder=""
-              keyboardType="numeric"
+              value={formData.companyName}
+              onChangeText={(text) => handleInputChange("companyName", text)}
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Education</Text>
-            <TextInput style={styles.input} placeholder="" />
-          </View>
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Educational certificate</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Upload your educational certificate here"
-          />
-        </View>
-
-        <Text style={styles.subTitle}>
-          <Image source={require("../assets/Line.png")} style={styles.line} />{" "}
-          Company details{" "}
-          <Image source={require("../assets/Line.png")} style={styles.line} />
-        </Text>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Company name</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter your company name"
-          />
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Company address</Text>
-          <TextInput style={styles.input} placeholder="Type here" />
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Website</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter your company website"
-          />
-        </View>
-
-        <View style={styles.row}>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Current salary</Text>
+            <Text style={styles.label}>Company address</Text>
             <TextInput
               style={styles.input}
-              placeholder=""
-              keyboardType="numeric"
+              value={formData.companyAddress}
+              onChangeText={(text) => handleInputChange("companyAddress", text)}
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Target salary</Text>
+            <Text style={styles.label}>Website</Text>
             <TextInput
               style={styles.input}
-              placeholder=""
-              keyboardType="numeric"
+              value={formData.website}
+              onChangeText={(text) => handleInputChange("website", text)}
             />
           </View>
-        </View>
 
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => {
-            showToast();
-            setTimeout(async () => {
-              navigation.navigate("KYC Verification");
-            }, 1000);
-          }}
-        >
-          <Text style={styles.buttonText}>Continue</Text>
-        </TouchableOpacity>
-        {/* <Button
-          title="Continue"
-          onPress={() => navigation.navigate("KYC Verification")}
-        /> */}
-        <Toast />
-      </View>
-    </ScrollView>
+          <View style={styles.row}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Current salary</Text>
+              <TextInput
+                style={styles.input}
+                keyboardType="numeric"
+                value={formData.currentSalary}
+                onChangeText={(text) => handleInputChange("currentSalary", text)}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Target salary</Text>
+              <TextInput
+                style={styles.input}
+                keyboardType="numeric"
+                value={formData.targetSalary}
+                onChangeText={(text) => handleInputChange("targetSalary", text)}
+              />
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={styles.button}
+            onPress={register}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text style={styles.buttonText}>Continue</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+      <Toast />
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#ffffff",
+  },
   scrollContainer: {
     flexGrow: 1,
-    padding: 20,
-    backgroundColor: "#ffffff",
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    paddingBottom: 40,
   },
   logoContainer: {
     alignItems: "center",
@@ -209,15 +286,14 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   form: {
-    flex: 1,
     backgroundColor: "#1C9D5B",
     borderRadius: 20,
+    paddingTop: 10,
+    paddingBottom: 20,
   },
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
-    // paddingLeft: 10,
-    // paddingRight: 10,
     paddingTop: 15,
   },
   line: {
@@ -228,7 +304,6 @@ const styles = StyleSheet.create({
   inputGroup: {
     flex: 1,
     marginHorizontal: 15,
-
     paddingLeft: 10,
     paddingRight: 10,
     marginTop: 20,
@@ -248,7 +323,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff",
     color: "#6B6B6B",
   },
-
   subTitle: {
     fontSize: 18,
     fontWeight: "bold",
@@ -262,13 +336,12 @@ const styles = StyleSheet.create({
     borderColor: "#cccccc",
     borderWidth: 1,
     borderRadius: 5,
-    // paddingHorizontal: 10,
     backgroundColor: "#003E1E",
     color: "#6B6B6B",
     justifyContent: "center",
     alignItems: "center",
     marginHorizontal: 20,
-    marginBottom: 30,
+    marginBottom: 10,
     marginTop: 30,
   },
   buttonText: {

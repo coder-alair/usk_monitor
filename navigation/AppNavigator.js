@@ -8,6 +8,7 @@ import RegistrationScreen from "../screens/RegistrationScreen";
 import KYCVerificationScreen from "../screens/KYCVerificationScreen";
 import AdminHierarchyScreen from "../screens/AdminHierarchyScreen";
 import SignUpScreen from "../screens/SignUpScreen";
+import DetailsScreen from "../screens/Details";
 
 const Stack = createStackNavigator();
 
@@ -34,6 +35,20 @@ export default function AppNavigator() {
         <Stack.Screen
           name="Admin Hierarchy"
           component={AdminHierarchyScreen}
+          options={({ navigation }) => ({
+            headerRight: () => (
+              <TouchableOpacity
+                onPress={() => handleLogout(navigation)}
+                style={{ marginRight: 10 }}
+              >
+                <Text style={{ color: "red", fontWeight: "bold" }}>Logout</Text>
+              </TouchableOpacity>
+            ),
+          })}
+        />
+         <Stack.Screen
+          name="Details"
+          component={DetailsScreen}
           options={({ navigation }) => ({
             headerRight: () => (
               <TouchableOpacity

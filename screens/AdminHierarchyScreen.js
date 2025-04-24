@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useContext, useMemo } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { useState, useEffect, useContext } from "react";
 import {
   View,
   Text,
@@ -11,33 +10,28 @@ import {
   TextInput,
 } from "react-native";
 import Toast from "react-native-toast-message";
-import { HttpClient } from "../server/http";
 import { Avatar } from "react-native-elements";
-
-import { Picker } from "react-native-web";
+import { Picker } from '@react-native-picker/picker';
 import { UserContext } from "../contexts/AuthContext";
 import { BACKEND_API_URL } from "../helper/constant";
 import ShowComponent from "../helper/ShowComponent";
+import { HttpClient } from "../server/http";
 
-
-
-export default function AdminHierarchyScreen() {
+export default function AdminHierarchyScreen({ navigation }) {
   const [users, setUsers] = useState([]);
   const [adminRoles, setAdminRoles] = useState([]);
-  const [states, setStates] = useState([]);
-  const [districts, setDistricts] = useState([]);
-  const [role, setRole] = useState("CMA"); // State for the dropdown
-  const [categoryValue, setCategoryValue] = useState("driver"); // State for the dropdown
-  const [stateValue, setStateValue] = useState("rajasthan"); // State for the dropdown
-  const [districtValue, setDistrictValue] = useState("jaipur"); // State for the dropdown
-  const [countryValue, setCountryValue] = useState("india"); // State for the dropdown
-  const [blockValue, setBlockValue] = useState("ambar"); // State for the dropdown
-  const [gpnValue, setGpnValue] = useState("achrol"); // State for the dropdown
-  const [villageName, setVillageName] = useState("achrol"); // State for the dropdown
-  const { currentUser, loading } = useContext(UserContext);
+  const [role, setRole] = useState("CMA");
+  const [categoryValue, setCategoryValue] = useState("driver");
+  const [stateValue, setStateValue] = useState("rajasthan");
+  const [districtValue, setDistrictValue] = useState("jaipur");
+  const [countryValue, setCountryValue] = useState("india");
+  const [blockValue, setBlockValue] = useState("ambar");
+  const [gpnValue, setGpnValue] = useState("achrol");
+  const [villageName, setVillageName] = useState("achrol");
+  const { currentUser } = useContext(UserContext);
   const [modalVisible, setModalVisible] = useState(false);
-  const [newUserEmail, setNewUserEmail] = useState(""); // New user email
-  const [newUserPhone, setNewUserPhone] = useState(""); // New user phone
+  const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUserPhone, setNewUserPhone] = useState("");
 
   const roleHierarchy = {
     CMA: ["country_admin"],
@@ -51,19 +45,16 @@ export default function AdminHierarchyScreen() {
     vendor: [],
   };
 
-  // Generate a random 6-digit referral code
   const generateReferralCode = () => {
     return Math.floor(10000000 + Math.random() * 900000).toString();
   };
 
+  const [referralCode, setReferralCode] = useState(generateReferralCode());
+
   const category = [
-    {
-      label: "Driver", value: "driver"
-    },
-    {
-      label: "Electrician", value: "electrician"
-    },
-  ]
+    { label: "Driver", value: "driver" },
+    { label: "Electrician", value: "electrician" },
+  ];
 
   const countryData = [
     { label: "India", value: "india" },
@@ -95,14 +86,12 @@ export default function AdminHierarchyScreen() {
     { label: "Akhepura", value: "akhepura" },
     { label: "Akedadoongar", value: "akedadoongar" },
     { label: "Bagwada", value: "bagwada" },
-  ]
+  ];
 
   const villageData = [
     { label: "Achrol", value: "achrol" },
     { label: "Anoppura", value: "anoppura" },
-  ]
-
-  const [referralCode, setReferralCode] = useState(generateReferralCode());
+  ];
 
   const roles = [
     { label: "Country admin", value: "country_admin" },
@@ -115,26 +104,17 @@ export default function AdminHierarchyScreen() {
     { label: "Vendor", value: "vendor" },
   ];
 
-
   useEffect(() => {
     if (currentUser?.role) {
-      console.log({ currentUser })
       const userRole = currentUser?.role;
-
       const allowedRoles = roleHierarchy[userRole] || [];
-
       const filteredRoles = roles.filter((r) => allowedRoles.includes(r.value));
-
       setAdminRoles(filteredRoles);
-      setStates(statesData);
-      setDistricts(districtsData);
       if (filteredRoles.length > 0) {
         setRole(filteredRoles[0].value);
       }
     }
   }, [currentUser?.role]);
-
-  console.log({ role })
 
   const handleAddTask = async () => {
     if (!newUserEmail || !newUserPhone) {
@@ -149,7 +129,7 @@ export default function AdminHierarchyScreen() {
     }
 
     try {
-      const response = await HttpClient.post(`${BACKEND_API_URL}/api/auth/add-user`, {
+      await HttpClient.post(`${BACKEND_API_URL}/api/auth/add-user`, {
         email: newUserEmail,
         phone: newUserPhone,
         referralCode,
@@ -168,7 +148,10 @@ export default function AdminHierarchyScreen() {
       getUsers();
     } catch (error) {
       console.log(error);
-      alert("Failed to add user. Please try again.");
+      Toast.show({
+        type: "error",
+        text1: "Failed to add user. Please try again.",
+      });
     }
   };
 
@@ -191,171 +174,140 @@ export default function AdminHierarchyScreen() {
   }, [currentUser?._id]);
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.scrollContainer}
-      style={{ height: 500, padding: 20 }}
-    >
-      {/* Logo */}
-      <View style={styles.logoContainer}>
+    <View style={styles.container}>
+      {/* Header with Logo */}
+      <View style={styles.headerContainer}>
         <Image
           source={require("../assets/usk-img.png")}
           style={styles.logoImage}
+          resizeMode="contain"
         />
-      </View>
-
-      {/* Header */}
-      <View style={styles.header}>
         <Text style={styles.headerTitle}>Administrative Hierarchy</Text>
       </View>
 
-      {/* Add Task Button */}
-      <TouchableOpacity
-        style={styles.smallAddTaskButton}
-        onPress={() => setModalVisible(true)}
-      >
-        <Text style={styles.addTaskText}>Add User</Text>
-      </TouchableOpacity>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Add User Button */}
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => setModalVisible(true)}
+        >
+          <Text style={styles.addButtonText}>Add User</Text>
+        </TouchableOpacity>
 
-      {/* Admin Info */}
-      <View style={styles.adminInfo}>
-        <Avatar
-          rounded
-          source={{
-            uri: "https://randomuser.me/api/portraits/men/1.jpg",
-          }}
-        />
-        <View style={styles.adminDetails}>
-          <View style={styles.adminLeft}>
+        {/* Admin Info Card */}
+        <View style={styles.adminCard}>
+          <Avatar
+            rounded
+            size="medium"
+            source={{ uri: "https://randomuser.me/api/portraits/men/1.jpg" }}
+            containerStyle={styles.avatar}
+          />
+          <View style={styles.adminInfo}>
             <Text style={styles.adminName}>
-              {currentUser?.firstName || "Test"}{" "}
-              {currentUser?.lastName || "User"}
+              {currentUser?.firstName || "Test"} {currentUser?.lastName || "User"}
             </Text>
             <Text style={styles.adminRole}>
-              {currentUser?.role || "Country Admin"}
+              {currentUser?.role?.split('_').join(' ') || "Country Admin"}
             </Text>
-          </View>
-          <View style={styles.adminStates}>
-            <Text>Total Users: {users?.length || 0}</Text>
-            <Image source={require("../assets/dropdown.png")} />
+            <Text style={styles.userCount}>Total Users: {users?.length || 0}</Text>
           </View>
         </View>
-      </View>
 
-      {/* View All Button */}
-      {/* <TouchableOpacity style={styles.viewAllButton}>
-        <View style={styles.viewAllText}>
-          <Text>View all state admins</Text>
-        </View>
-      </TouchableOpacity> */}
-
-      {/* State Information */}
-      <Text style={styles.stateText}>
-        Your state: <Text style={{ fontWeight: "bold" }}>Rajasthan</Text>
-      </Text>
-
-      {/* Admin Cards */}
-      {users?.length > 0 ? (
-        users?.map((user, index) => (
-          <View key={index} style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Image source={require("../assets/menu.png")} />
-              <Image
-                source={require("../assets/person2.png")}
-                style={styles.adminCardImage}
-              />
-              <View style={styles.cardInfo}>
-                <View style={styles.cardInfoLeft}>
-                  <Text style={styles.cardName}>
-                    {user?.firstName} {user?.lastName}
-                  </Text>
-                  <Text style={styles.cardRole}>{user?.role}</Text>
+        {/* User Cards */}
+        <ShowComponent condition={currentUser?.role !== "GPN_admin"}>
+          {users?.length > 0 ? (
+            users?.map((user, index) => (
+              <View key={index} style={styles.userCard}>
+                <View style={styles.userCardHeader}>
+                  <Avatar
+                    rounded
+                    size="small"
+                    source={{ uri: "https://randomuser.me/api/portraits/men/1.jpg" }}
+                  />
+                  <View style={styles.userInfo}>
+                    <Text style={styles.userName}>
+                      {user?.firstName} {user?.lastName}
+                    </Text>
+                    <Text style={styles.userRole}>
+                      {user?.role?.split('_').join(' ')}
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.cardDistricts}>
-                  <Text>Total Districts: {user?.totalDistricts || 0}</Text>
-                  <Image source={require("../assets/dropdown.png")} />
-                </View>
-              </View>
-            </View>
 
-            <TouchableOpacity style={styles.viewAllButton}>
-              <View>
-                <Text
-                  style={{
-                    color: "white",
-                    textAlign: "center",
-                  }}
+                <TouchableOpacity 
+                  style={styles.districtButton}
+                  onPress={() => navigation.navigate("Details", { userId: user._id })}
                 >
-                  District admins
-                </Text>
+                  <Text style={styles.districtButtonText}>View Details</Text>
+                </TouchableOpacity>
               </View>
-            </TouchableOpacity>
+            ))
+          ) : (
+            <Text style={styles.noUsersText}>No users available</Text>
+          )}
+        </ShowComponent>
 
-            {/* GPN List */}
-            <View style={styles.gpnList}>
-              {user.gpnList?.map((gpn, index) => (
-                <Text key={index} style={styles.gpnText}>
-                  {gpn}
-                </Text>
-              ))}
-            </View>
-          </View>
-        ))
-      ) : (
-        <Text style={{ textAlign: "center", marginTop: 20 }}>
-          No users available.
-        </Text>
-      )}
+        <TouchableOpacity
+          style={styles.detailsButton}
+          onPress={() => navigation.navigate("Details")}
+        >
+          <Text style={styles.detailsButtonText}>Check All User Details</Text>
+        </TouchableOpacity>
+      </ScrollView>
 
-      {/* Modal for Add Task */}
+      {/* Add User Modal */}
       <Modal
         animationType="slide"
         transparent={true}
         visible={modalVisible}
-        onRequestClose={() => {
-          setModalVisible(!modalVisible);
-        }}
+        onRequestClose={() => setModalVisible(false)}
       >
-        <View style={styles.modalBackground}>
-          <View style={styles.modalView}>
-            <Text style={styles.modalTitle}>Add User Details</Text>
-            <ScrollView contentContainerStyle={styles.scrollContainer}>
-              {/* User Details Form */}
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Add New User</Text>
+            <ScrollView contentContainerStyle={styles.modalContent}>
               <Text style={styles.label}>Email:</Text>
               <TextInput
                 style={styles.input}
                 value={newUserEmail}
-                onChangeText={(text) => setNewUserEmail(text)}
+                onChangeText={setNewUserEmail}
+                placeholder="Enter email"
+                keyboardType="email-address"
+                autoCapitalize="none"
               />
 
               <Text style={styles.label}>Phone:</Text>
               <TextInput
                 style={styles.input}
                 value={newUserPhone}
+                onChangeText={setNewUserPhone}
+                placeholder="Enter phone number"
+                keyboardType="phone-pad"
                 maxLength={10}
-                onChangeText={(text) => setNewUserPhone(text)}
-                keyboardType="numeric"
               />
 
-              <Text style={styles.label}>Role:</Text>
-              <View style={{ flexDirection: "row" }}>
-                <Picker
-                  selectedValue={role}
-                  onValueChange={(itemValue) => setRole(itemValue)}
-                  style={styles.dropdown}
-                >
-                  {adminRoles.map((item, index) => (
-                    <Picker.Item key={index} label={item.label} value={item.value} />
-                  ))}
-                </Picker>
-              </View>
+              <ShowComponent condition={currentUser?.role !== "GPN_admin"}>
+                <Text style={styles.label}>Role:</Text>
+                <View style={styles.pickerContainer}>
+                  <Picker
+                    selectedValue={role}
+                    onValueChange={setRole}
+                    style={styles.picker}
+                  >
+                    {adminRoles.map((item, index) => (
+                      <Picker.Item key={index} label={item.label} value={item.value} />
+                    ))}
+                  </Picker>
+                </View>
+              </ShowComponent>
 
-              <ShowComponent condition={currentUser?.role == "CMA"}>
+              <ShowComponent condition={currentUser?.role === "CMA"}>
                 <Text style={styles.label}>Country:</Text>
-                <View style={{ flexDirection: "row" }}>
+                <View style={styles.pickerContainer}>
                   <Picker
                     selectedValue={countryValue}
-                    onValueChange={(itemValue) => setCountryValue(itemValue)}
-                    style={styles.dropdown}
+                    onValueChange={setCountryValue}
+                    style={styles.picker}
                   >
                     {countryData.map((item, index) => (
                       <Picker.Item key={index} label={item.label} value={item.value} />
@@ -364,13 +316,13 @@ export default function AdminHierarchyScreen() {
                 </View>
               </ShowComponent>
 
-              <ShowComponent condition={currentUser?.role == "CMA"}>
+              <ShowComponent condition={currentUser?.role === "CMA"}>
                 <Text style={styles.label}>Category:</Text>
-                <View style={{ flexDirection: "row" }}>
+                <View style={styles.pickerContainer}>
                   <Picker
                     selectedValue={categoryValue}
-                    onValueChange={(itemValue) => setCategoryValue(itemValue)}
-                    style={styles.dropdown}
+                    onValueChange={setCategoryValue}
+                    style={styles.picker}
                   >
                     {category.map((item, index) => (
                       <Picker.Item key={index} label={item.label} value={item.value} />
@@ -379,13 +331,13 @@ export default function AdminHierarchyScreen() {
                 </View>
               </ShowComponent>
 
-              <ShowComponent condition={currentUser?.role == "country_admin"}>
+              <ShowComponent condition={currentUser?.role === "country_admin"}>
                 <Text style={styles.label}>State:</Text>
-                <View style={{ flexDirection: "row" }}>
+                <View style={styles.pickerContainer}>
                   <Picker
                     selectedValue={stateValue}
-                    onValueChange={(itemValue) => setStateValue(itemValue)}
-                    style={styles.dropdown}
+                    onValueChange={setStateValue}
+                    style={styles.picker}
                   >
                     {statesData.map((item, index) => (
                       <Picker.Item key={index} label={item.label} value={item.value} />
@@ -394,13 +346,13 @@ export default function AdminHierarchyScreen() {
                 </View>
               </ShowComponent>
 
-              <ShowComponent condition={currentUser?.role == "state_admin"}>
+              <ShowComponent condition={currentUser?.role === "state_admin"}>
                 <Text style={styles.label}>District:</Text>
-                <View style={{ flexDirection: "row" }}>
+                <View style={styles.pickerContainer}>
                   <Picker
                     selectedValue={districtValue}
-                    onValueChange={(itemValue) => setDistrictValue(itemValue)}
-                    style={styles.dropdown}
+                    onValueChange={setDistrictValue}
+                    style={styles.picker}
                   >
                     {districtsData.map((item, index) => (
                       <Picker.Item key={index} label={item.label} value={item.value} />
@@ -409,13 +361,13 @@ export default function AdminHierarchyScreen() {
                 </View>
               </ShowComponent>
 
-              <ShowComponent condition={currentUser?.role == "district_admin"}>
+              <ShowComponent condition={currentUser?.role === "district_admin"}>
                 <Text style={styles.label}>Block:</Text>
-                <View style={{ flexDirection: "row" }}>
+                <View style={styles.pickerContainer}>
                   <Picker
                     selectedValue={blockValue}
-                    onValueChange={(itemValue) => setBlockValue(itemValue)}
-                    style={styles.dropdown}
+                    onValueChange={setBlockValue}
+                    style={styles.picker}
                   >
                     {blocksData.map((item, index) => (
                       <Picker.Item key={index} label={item.label} value={item.value} />
@@ -424,13 +376,13 @@ export default function AdminHierarchyScreen() {
                 </View>
               </ShowComponent>
 
-              <ShowComponent condition={currentUser?.role == "block_admin"}>
+              <ShowComponent condition={currentUser?.role === "block_admin"}>
                 <Text style={styles.label}>Gram Panchayat:</Text>
-                <View style={{ flexDirection: "row" }}>
+                <View style={styles.pickerContainer}>
                   <Picker
                     selectedValue={gpnValue}
-                    onValueChange={(itemValue) => setGpnValue(itemValue)}
-                    style={styles.dropdown}
+                    onValueChange={setGpnValue}
+                    style={styles.picker}
                   >
                     {GPNData.map((item, index) => (
                       <Picker.Item key={index} label={item.label} value={item.value} />
@@ -439,13 +391,13 @@ export default function AdminHierarchyScreen() {
                 </View>
               </ShowComponent>
 
-              <ShowComponent condition={currentUser?.role == "gpn_admin"}>
+              <ShowComponent condition={currentUser?.role === "gpn_admin"}>
                 <Text style={styles.label}>Village Name:</Text>
-                <View style={{ flexDirection: "row" }}>
+                <View style={styles.pickerContainer}>
                   <Picker
                     selectedValue={villageName}
-                    onValueChange={(itemValue) => setVillageName(itemValue)}
-                    style={styles.dropdown}
+                    onValueChange={setVillageName}
+                    style={styles.picker}
                   >
                     {villageData.map((item, index) => (
                       <Picker.Item key={index} label={item.label} value={item.value} />
@@ -454,237 +406,236 @@ export default function AdminHierarchyScreen() {
                 </View>
               </ShowComponent>
 
-              <Text style={styles.refer}>Referral Code:</Text>
+              <Text style={styles.label}>Referral Code:</Text>
               <Text style={styles.referralCode}>{referralCode}</Text>
 
-              <TouchableOpacity
-                style={styles.submitButton}
-                onPress={handleAddTask}
-              >
-                <Text style={styles.submitText}>Add User</Text>
-              </TouchableOpacity>
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.submitButton]}
+                  onPress={handleAddTask}
+                >
+                  <Text style={styles.buttonText}>Add User</Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={() => setModalVisible(false)}
-              >
-                <Text style={styles.closeText}>Close</Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => setModalVisible(false)}
+                >
+                  <Text style={styles.buttonText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
             </ScrollView>
           </View>
         </View>
       </Modal>
       <Toast />
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollContainer: {
-    flexGrow: 1,
-    padding: 50,
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
   },
-  logoContainer: {
-    alignItems: "center",
-    marginBottom: 20,
+  headerContainer: {
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
   },
   logoImage: {
-    width: 200,
-    height: 150,
-  },
-  header: {
-    alignItems: "center",
-    marginBottom: 20,
+    width: 150,
+    height: 80,
+    marginBottom: 10,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
   },
-  picker: {
-    height: 50,
-    width: "100%",
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 32,
   },
-  smallAddTaskButton: {
-    backgroundColor: "#4CAF50",
-    padding: 10,
-    borderRadius: 5,
-    alignItems: "center",
+  addButton: {
+    backgroundColor: '#4CAF50',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 16,
+    elevation: 2,
   },
-  addTaskText: {
-    color: "white",
+  addButtonText: {
+    color: 'white',
     fontSize: 16,
+    fontWeight: 'bold',
+  },
+  adminCard: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    elevation: 2,
+  },
+  avatar: {
+    marginRight: 16,
   },
   adminInfo: {
-    flexDirection: "row",
-    marginVertical: 20,
-    padding: 10,
-    backgroundColor: "#f1f1f1",
-    borderRadius: 5,
-  },
-  adminImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginRight: 10,
-  },
-  adminDetails: {
     flex: 1,
-    marginLeft: 10,
-  },
-  adminLeft: {
-    flexDirection: "row",
-    justifyContent: "space-between",
   },
   adminName: {
-    fontSize: 16,
-    fontWeight: "bold",
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
   },
   adminRole: {
-    color: "gray",
+    fontSize: 14,
+    color: '#666',
+    marginTop: 4,
+    textTransform: 'capitalize',
   },
-  adminStates: {
-    flexDirection: "row",
-    alignItems: "center",
+  userCount: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 4,
   },
-  viewAllButton: {
-    backgroundColor: "#007BFF",
+  userCard: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 12,
+    elevation: 2,
+  },
+  userCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  userInfo: {
+    marginLeft: 12,
+  },
+  userName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  userRole: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 2,
+    textTransform: 'capitalize',
+  },
+  districtButton: {
+    backgroundColor: '#2196F3',
     padding: 10,
-    borderRadius: 5,
-    alignItems: "center",
-    marginTop: 10,
+    borderRadius: 6,
+    alignItems: 'center',
   },
-  viewAllText: {
-    flexDirection: "row",
-    alignItems: "center",
+  districtButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
-  stateText: {
-    marginVertical: 20,
+  noUsersText: {
+    textAlign: 'center',
+    color: '#666',
+    marginTop: 20,
     fontSize: 16,
   },
-  card: {
-    backgroundColor: "#fff",
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 20,
-    elevation: 1,
+  detailsButton: {
+    backgroundColor: '#607D8B',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 16,
   },
-  cardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
+  detailsButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
-  adminCardImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 10,
-  },
-  cardInfo: {
+  modalOverlay: {
     flex: 1,
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
-  cardInfoLeft: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  cardName: {
-    fontWeight: "bold",
-  },
-  cardRole: {
-    color: "gray",
-  },
-  cardDistricts: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  gpnList: {
-    marginTop: 10,
-  },
-  gpnText: {
-    color: "black",
-  },
-  modalBackground: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-  },
-  modalView: {
-    width: "90%",
-    maxHeight: "80%",
-    backgroundColor: "white",
-    borderRadius: 20,
-    padding: 20,
-    elevation: 5,
-  },
-  scrollContainer: {
-    flexGrow: 1,
-    paddingBottom: 20,
+  modalContainer: {
+    backgroundColor: 'white',
+    marginHorizontal: 20,
+    borderRadius: 10,
+    maxHeight: '80%',
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 20,
-    textAlign: "center",
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  modalContent: {
+    padding: 16,
   },
   label: {
-    marginBottom: 10,
-    fontWeight: "bold",
+    fontSize: 14,
+    color: '#333',
+    marginBottom: 6,
+    fontWeight: '500',
+  },
+  input: {
+    backgroundColor: '#f9f9f9',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 6,
+    padding: 12,
+    marginBottom: 16,
+    fontSize: 16,
+  },
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 6,
+    marginBottom: 16,
+    overflow: 'hidden',
+  },
+  picker: {
+    backgroundColor: '#f9f9f9',
+    paddingTop:8,
+    paddingBottom:8,
   },
   referralCode: {
     fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 20,
-    color: "green",
-    textAlign: "center",
-  },
-  input: {
-    height: 40,
-    width: "100%",
-    borderColor: "gray",
-    borderWidth: 1,
-    marginBottom: 20,
-    padding: 10,
-    borderRadius: 5,
-  },
-  dropdown: {
-    width: "100%",
-    marginBottom: 20,
-    paddingTop: 10,
-    paddingBottom: 10,
-  },
-  submitButton: {
-    backgroundColor: "#4CAF50",
-    padding: 10,
-    borderRadius: 5,
-    marginBottom: 10,
-    width: "100%",
-    alignItems: "center",
-  },
-  submitText: {
-    color: "white",
-    fontSize: 16,
-  },
-  closeButton: {
-    backgroundColor: "#f44336",
-    padding: 10,
-    borderRadius: 5,
-    width: "100%",
-    alignItems: "center",
-  },
-  closeText: {
-    color: "white",
-    fontSize: 16,
-  },
-  logoutButton: {
-    backgroundColor: "#FF5722",
-    borderRadius: 5,
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    alignItems: "center",
+    fontWeight: 'bold',
+    color: '#4CAF50',
+    textAlign: 'center',
     marginVertical: 10,
   },
-  logoutText: {
-    color: "white",
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 16,
+  },
+  modalButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  submitButton: {
+    backgroundColor: '#4CAF50',
+    marginRight: 8,
+  },
+  cancelButton: {
+    backgroundColor: '#f44336',
+    marginLeft: 8,
+  },
+  buttonText: {
+    color: 'white',
+    fontWeight: 'bold',
     fontSize: 16,
   },
 });
